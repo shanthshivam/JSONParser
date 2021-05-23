@@ -57,7 +57,7 @@ public class JsonParserApplication {
 			HashMap<String, ArrayList> compDataTypes = new HashMap<>();
 			HashMap<String, ArrayList> compDataCopy = new HashMap<String, ArrayList>();
 
-			Driver driver = GraphDatabase.driver("bolt://localhost:7687/b4nkd_6",
+			Driver driver = GraphDatabase.driver("bolt://localhost:7687/b4nkd_8",
 					AuthTokens.basic("neo4j", "password"));
 
 			Session session = driver.session();
@@ -163,12 +163,12 @@ public class JsonParserApplication {
 						// dataTypeKey = dataTypeKey.replaceAll("-", "_");
 						// if raw type
 						if (compDataTypes.get(dataTypeKey) != null) {
-							String reqRelationshipQuery = "MATCH (a:CompositeData), (b:CompositeData) WHERE  a.name = \""
+							String reqRelationshipQuery = "MATCH (a:Request), (b:CompositeData) WHERE  a.name = \""
 									+ requestKeyOrig + "\" AND b.name=\"" + dataTypeKey + "\" "
 									+ "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
 							relationshipList.add(reqRelationshipQuery);
 						} else if (rawDataTypes.get(dataTypeKey) != null) {
-							String reqRelationshipQuery = "MATCH (a:CompositeData), (b:PrimitiveData) WHERE  a.name = \""
+							String reqRelationshipQuery = "MATCH (a:Request), (b:PrimitiveData) WHERE  a.name = \""
 									+ requestKeyOrig + "\" AND b.name=\"" + dataTypeKey + "\" "
 									+ "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
 							relationshipList.add(reqRelationshipQuery);
@@ -186,12 +186,12 @@ public class JsonParserApplication {
 						String dataTypeKey = (String) dataTypeKeyIterator.next();
 						// if raw type
 						if (compDataTypes.get(dataTypeKey) != null) {
-							String reqRelationshipQuery = "MATCH (a:PrimitiveData), (b:CompositeData) WHERE  a.name = \""
+							String reqRelationshipQuery = "MATCH (a:Request), (b:CompositeData) WHERE  a.name = \""
 									+ requestKeyOrig + "\" AND b.name=\"" + dataTypeKey + "\" "
 									+ "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
 							relationshipList.add(reqRelationshipQuery);
 						} else if (rawDataTypes.get(dataTypeKey) != null) {
-							String reqRelationshipQuery = "MATCH (a:PrimitiveData), (b:PrimitiveData) WHERE  a.name = \""
+							String reqRelationshipQuery = "MATCH (a:Request), (b:PrimitiveData) WHERE  a.name = \""
 									+ requestKeyOrig + "\" AND b.name=\"" + dataTypeKey + "\" "
 									+ "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
 							relationshipList.add(reqRelationshipQuery);
@@ -205,7 +205,7 @@ public class JsonParserApplication {
 				session.run(responseNodequery);
 				
 				// create a relationship between endpoint and Request object
-				String endPointResponseRelationshipQuery = "MATCH (a:ServiceEndpoint), (b:Request) WHERE  a.name = \"" + endPoint
+				String endPointResponseRelationshipQuery = "MATCH (a:ServiceEndpoint), (b:Response) WHERE  a.name = \"" + endPoint
 						+ "\" AND b.name=\"" + responseKeyOrig + "\" " + "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
 				System.out.println("EndPoint and Request Relationship Query : " + endPointResponseRelationshipQuery);
 				session.run(endPointResponseRelationshipQuery);				
@@ -224,12 +224,12 @@ public class JsonParserApplication {
 						// dataTypeKey = dataTypeKey.replaceAll("-", "_");
 						// if raw type
 						if (compDataTypes.get(dataTypeKey) != null) {
-							String reqRelationshipQuery = "MATCH (a:CompositeData), (b:CompositeData) WHERE  a.name = \""
+							String reqRelationshipQuery = "MATCH (a:Response), (b:CompositeData) WHERE  a.name = \""
 									+ responseKeyOrig + "\" AND b.name=\"" + dataTypeKey + "\" "
 									+ "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
 							relationshipList.add(reqRelationshipQuery);
 						} else if (rawDataTypes.get(dataTypeKey) != null) {
-							String reqRelationshipQuery = "MATCH (a:CompositeData), (b:PrimitiveData) WHERE  a.name = \""
+							String reqRelationshipQuery = "MATCH (a:Response), (b:PrimitiveData) WHERE  a.name = \""
 									+ responseKeyOrig + "\" AND b.name=\"" + dataTypeKey + "\" "
 									+ "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
 							relationshipList.add(reqRelationshipQuery);
@@ -247,12 +247,12 @@ public class JsonParserApplication {
 						String dataTypeKey = (String) dataTypeKeyIterator.next();
 						// if raw type
 						if (compDataTypes.get(dataTypeKey) != null) {
-							String reqRelationshipQuery = "MATCH (a:PrimitiveData), (b:CompositeData) WHERE  a.name = \""
+							String reqRelationshipQuery = "MATCH (a:Response), (b:CompositeData) WHERE  a.name = \""
 									+ responseKeyOrig + "\" AND b.name=\"" + dataTypeKey + "\" "
 									+ "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
 							relationshipList.add(reqRelationshipQuery);
 						} else if (rawDataTypes.get(dataTypeKey) != null) {
-							String reqRelationshipQuery = "MATCH (a:PrimitiveData), (b:PrimitiveData) WHERE  a.name = \""
+							String reqRelationshipQuery = "MATCH (a:Response), (b:PrimitiveData) WHERE  a.name = \""
 									+ responseKeyOrig + "\" AND b.name=\"" + dataTypeKey + "\" "
 									+ "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
 							relationshipList.add(reqRelationshipQuery);
