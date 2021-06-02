@@ -31,10 +31,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
-
 public class YAMLParser {
 
-public void parseYAML(File file) {
+	public static void parseYAML(File file, Driver driver) {
 
 		try {
 
@@ -54,9 +53,6 @@ public void parseYAML(File file) {
 			HashMap<String, HashMap> rawDataTypes = new HashMap<>();
 			HashMap<String, ArrayList> compDataTypes = new HashMap<>();
 			HashMap<String, ArrayList> compDataCopy = new HashMap<String, ArrayList>();
-
-			Driver driver = GraphDatabase.driver("bolt://localhost:7687/b4nkd_8",
-					AuthTokens.basic("neo4j", "password"));
 
 			Session session = driver.session();
 
@@ -119,8 +115,9 @@ public void parseYAML(File file) {
 
 				System.out.println(
 						" EndPoint " + endPointkey + " Request :  " + requestKey + " Response :  " + responseKey);
-				String query = "CREATE (" + endPoint + ":ServiceEndpoint {name: \""+ endPoint +"\", nameurl:\"" + endPointkey + "\" , request:\""
-						+ requestKeyOrig + "\", response:\"" + responseKeyOrig + "\" })\n RETURN " + endPoint;
+				String query = "CREATE (" + endPoint + ":ServiceEndpoint {name: \"" + endPoint + "\", nameurl:\""
+						+ endPointkey + "\" , request:\"" + requestKeyOrig + "\", response:\"" + responseKeyOrig
+						+ "\" })\n RETURN " + endPoint;
 				System.out.println(query);
 				session.run(query);
 				// create relationship with service for the endpoint
@@ -139,12 +136,12 @@ public void parseYAML(File file) {
 				session.run(requestNodequery);
 
 				// create a relationship between endpoint and Request object
-				String endPointRequestRelationshipQuery = "MATCH (a:ServiceEndpoint), (b:Request) WHERE  a.name = \"" + endPoint
-						+ "\" AND b.name=\"" + requestKeyOrig + "\" " + "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
+				String endPointRequestRelationshipQuery = "MATCH (a:ServiceEndpoint), (b:Request) WHERE  a.name = \""
+						+ endPoint + "\" AND b.name=\"" + requestKeyOrig + "\" " + "CREATE (a)-[r:USES]->(b)"
+						+ "RETURN a, b";
 				System.out.println("EndPoint and Request Relationship Query : " + endPointRequestRelationshipQuery);
 				session.run(endPointRequestRelationshipQuery);
-				
-				
+
 				// there are two possibilities here: one is Composite and another is primitive.
 				// handle for both.
 				// composite
@@ -201,18 +198,19 @@ public void parseYAML(File file) {
 						+ "\" })\n RETURN " + responseKeyOrig;
 				System.out.println(responseNodequery);
 				session.run(responseNodequery);
-				
+
 				// create a relationship between endpoint and Request object
-				String endPointResponseRelationshipQuery = "MATCH (a:ServiceEndpoint), (b:Response) WHERE  a.name = \"" + endPoint
-						+ "\" AND b.name=\"" + responseKeyOrig + "\" " + "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
+				String endPointResponseRelationshipQuery = "MATCH (a:ServiceEndpoint), (b:Response) WHERE  a.name = \""
+						+ endPoint + "\" AND b.name=\"" + responseKeyOrig + "\" " + "CREATE (a)-[r:USES]->(b)"
+						+ "RETURN a, b";
 				System.out.println("EndPoint and Request Relationship Query : " + endPointResponseRelationshipQuery);
-				session.run(endPointResponseRelationshipQuery);				
-				
+				session.run(endPointResponseRelationshipQuery);
+
 				ArrayList responseParamList = (ArrayList) compDataCopy.get(responseKeyOrig);
-				
+
 				// create relationship with each request node and primitive and composite data
 				// types
-				
+
 				if (responseParamList != null) {
 
 					// create relationship with each request node and primitive and composite data
@@ -257,7 +255,7 @@ public void parseYAML(File file) {
 						}
 					}
 				}
-				
+
 				System.out.println("Relationships for " + endPoint);
 				for (int i = 0; i < relationshipList.size(); i++) {
 					System.out.println(
@@ -269,11 +267,14 @@ public void parseYAML(File file) {
 			session.close();
 
 			driver.close();
+			System.out.println("-----------------------------------------------------------------------------------------------------");
+			System.out.println("Successfully inserted into Neo4j for the file : " + fileLocation);
+			System.out.println("-----------------------------------------------------------------------------------------------------");
 
-			FileWriter writer = new FileWriter(new File("D://log.txt"));
-			writer.write(dataTypes.toString());
-			writer.close();
-
+			//			FileWriter writer = new FileWriter(new File("D://log.txt"));
+//			writer.write(dataTypes.toString());
+//			writer.close();
+			
 		} catch (JsonProcessingException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
@@ -333,7 +334,7 @@ public void parseYAML(File file) {
 				String dataTypeKey = (String) list.get(i);
 
 				String dataTypeKeyModified = dataTypeKey.replaceAll("-", "");
-				if (compDataTypes.get(key)!= null) {
+				if (compDataTypes.get(key) != null) {
 					if (compDataTypes.get(dataTypeKey) != null) {
 						String relationshipQuery = "MATCH (a:CompositeData), (b:CompositeData) WHERE  a.name = \"" + key
 								+ "\" AND b.name=\"" + dataTypeKey + "\" " + "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
@@ -342,9 +343,8 @@ public void parseYAML(File file) {
 						String relationshipQuery = "MATCH (a:CompositeData), (b:PrimitiveData) WHERE  a.name = \"" + key
 								+ "\" AND b.name=\"" + dataTypeKey + "\" " + "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
 						relationshipList.add(relationshipQuery);
-					}	
-				}
-				else if(rawDataType.get(key) != null) {
+					}
+				} else if (rawDataType.get(key) != null) {
 					if (compDataTypes.get(dataTypeKey) != null) {
 						String relationshipQuery = "MATCH (a:PrimitiveData), (b:CompositeData) WHERE  a.name = \"" + key
 								+ "\" AND b.name=\"" + dataTypeKey + "\" " + "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
@@ -356,7 +356,7 @@ public void parseYAML(File file) {
 					}
 				}
 				// if raw type
-				
+
 				queryPart = queryPart + ", " + dataTypeKeyModified + ":\"" + dataTypeKey + "\"";
 
 			}
@@ -505,7 +505,7 @@ public void parseYAML(File file) {
 
 				String value = reference.substring(reference.lastIndexOf("/") + 1, reference.length() - 1)
 						.replaceAll("-", "");
-				//System.out.println("Request : " + value);
+				// System.out.println("Request : " + value);
 				reqRespMap.put("request", value);
 				reqRespMapCopy.put("request", value);
 			}
@@ -521,7 +521,7 @@ public void parseYAML(File file) {
 				String reference = schemaEntry.getValue().toString().replaceAll("-", "");
 				String value = reference.substring(reference.lastIndexOf("/") + 1, reference.length() - 1)
 						.replaceAll("-", "");
-				//System.out.println("Response : " + value);
+				// System.out.println("Response : " + value);
 				reqRespMap.put("response", value);
 				reqRespMapCopy.put("response", value);
 			}

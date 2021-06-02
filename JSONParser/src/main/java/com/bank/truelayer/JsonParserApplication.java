@@ -33,22 +33,59 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 @SpringBootApplication
 public class JsonParserApplication {
+	
+	// Show this in the lastest version of the code = added on 2 June 2021
 
 	public static void main(String[] args) {
 		SpringApplication.run(JsonParserApplication.class, args);
+		try {
+			System.out.println("Processing the Application");
 
-		// File file = new File("C:\\Users\\shant\\Downloads\\B4nkd");
+			File file = new File("C:\\Users\\shant\\Downloads\\B4nkd");
+			File files[] = file.listFiles();
+			Driver driver = GraphDatabase.driver("bolt://localhost:7687/" + "b4nkd_9",
+					AuthTokens.basic("neo4j", "password"));
+			System.out.println("Processing the Application after intiation of Driver");
+			for (int i = 0; i < files.length; i++) {
+				System.out.println("Processing " + files[i].getAbsolutePath());
+				deleteJsonFiles(files[i]);
+				if (files[i].isDirectory()) {
+					File[] filesArray = files[i].listFiles();
+					for (int j = 0; j < filesArray.length; j++) {
+						if (filesArray[j].isDirectory()) {
+							//
+							System.out.println("Not processing anything in the is a directory " + filesArray[j].getAbsolutePath());
+						} else if (filesArray[j].getName().endsWith(".yaml")) {
+							System.out.println("Processing YAML to JSON " + filesArray[j].getAbsolutePath());
+							parseYAML(yamlToJsonConvertor(filesArray[j]), driver);
+						}
+					}
+				}
+				else {
+					System.out.println("Not processing anything");
+				}
+			}
+			System.out.println("Completion of the Application");
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+	}
+
+	public static void parseYAML(File file, Driver driver) {
 
 		try {
 
-			String fileLocation = "C:/Users/shant/Downloads/B4nkd/ExperianCreditReport/credit-profile-product-apis-v-openapi3.json";
-			String fileParentDirectory = fileLocation.substring(0, fileLocation.lastIndexOf("/"));
+//			String fileLocation = "C:/Users/shant/Downloads/B4nkd/ExperianCreditReport/credit-profile-product-apis-v-openapi3.json";
+			String fileLocation = file.getAbsolutePath();
+			String fileParentDirectory = fileLocation.substring(0, fileLocation.lastIndexOf("\\"));
 			System.out.println("File Parent Directory is : " + fileParentDirectory);
-			String serviceName = fileParentDirectory.substring(fileParentDirectory.lastIndexOf("/") + 1,
+			String serviceName = fileParentDirectory.substring(fileParentDirectory.lastIndexOf("\\") + 1,
 					fileParentDirectory.length());
 			System.out.println("Service Name is : " + serviceName);
 
-			File file = new File(fileLocation);
+//			File file = new File(fileLocation);
 			ObjectMapper objectMapper = new ObjectMapper();
 			HashMap<String, HashMap> dataTypes = new HashMap<>();
 			HashMap<String, HashMap> endPoints = new HashMap<>();
@@ -56,9 +93,6 @@ public class JsonParserApplication {
 			HashMap<String, HashMap> rawDataTypes = new HashMap<>();
 			HashMap<String, ArrayList> compDataTypes = new HashMap<>();
 			HashMap<String, ArrayList> compDataCopy = new HashMap<String, ArrayList>();
-
-			Driver driver = GraphDatabase.driver("bolt://localhost:7687/b4nkd_8",
-					AuthTokens.basic("neo4j", "password"));
 
 			Session session = driver.session();
 
@@ -121,8 +155,9 @@ public class JsonParserApplication {
 
 				System.out.println(
 						" EndPoint " + endPointkey + " Request :  " + requestKey + " Response :  " + responseKey);
-				String query = "CREATE (" + endPoint + ":ServiceEndpoint {name: \""+ endPoint +"\", nameurl:\"" + endPointkey + "\" , request:\""
-						+ requestKeyOrig + "\", response:\"" + responseKeyOrig + "\" })\n RETURN " + endPoint;
+				String query = "CREATE (" + endPoint + ":ServiceEndpoint {name: \"" + endPoint + "\", nameurl:\""
+						+ endPointkey + "\" , request:\"" + requestKeyOrig + "\", response:\"" + responseKeyOrig
+						+ "\" })\n RETURN " + endPoint;
 				System.out.println(query);
 				session.run(query);
 				// create relationship with service for the endpoint
@@ -141,12 +176,12 @@ public class JsonParserApplication {
 				session.run(requestNodequery);
 
 				// create a relationship between endpoint and Request object
-				String endPointRequestRelationshipQuery = "MATCH (a:ServiceEndpoint), (b:Request) WHERE  a.name = \"" + endPoint
-						+ "\" AND b.name=\"" + requestKeyOrig + "\" " + "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
+				String endPointRequestRelationshipQuery = "MATCH (a:ServiceEndpoint), (b:Request) WHERE  a.name = \""
+						+ endPoint + "\" AND b.name=\"" + requestKeyOrig + "\" " + "CREATE (a)-[r:USES]->(b)"
+						+ "RETURN a, b";
 				System.out.println("EndPoint and Request Relationship Query : " + endPointRequestRelationshipQuery);
 				session.run(endPointRequestRelationshipQuery);
-				
-				
+
 				// there are two possibilities here: one is Composite and another is primitive.
 				// handle for both.
 				// composite
@@ -203,18 +238,19 @@ public class JsonParserApplication {
 						+ "\" })\n RETURN " + responseKeyOrig;
 				System.out.println(responseNodequery);
 				session.run(responseNodequery);
-				
+
 				// create a relationship between endpoint and Request object
-				String endPointResponseRelationshipQuery = "MATCH (a:ServiceEndpoint), (b:Response) WHERE  a.name = \"" + endPoint
-						+ "\" AND b.name=\"" + responseKeyOrig + "\" " + "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
+				String endPointResponseRelationshipQuery = "MATCH (a:ServiceEndpoint), (b:Response) WHERE  a.name = \""
+						+ endPoint + "\" AND b.name=\"" + responseKeyOrig + "\" " + "CREATE (a)-[r:USES]->(b)"
+						+ "RETURN a, b";
 				System.out.println("EndPoint and Request Relationship Query : " + endPointResponseRelationshipQuery);
-				session.run(endPointResponseRelationshipQuery);				
-				
+				session.run(endPointResponseRelationshipQuery);
+
 				ArrayList responseParamList = (ArrayList) compDataCopy.get(responseKeyOrig);
-				
+
 				// create relationship with each request node and primitive and composite data
 				// types
-				
+
 				if (responseParamList != null) {
 
 					// create relationship with each request node and primitive and composite data
@@ -259,23 +295,7 @@ public class JsonParserApplication {
 						}
 					}
 				}
-				
-//				for (int i = 0; i < responseParamList.size(); i++) {
-//					String dataTypeKey = (String) responseParamList.get(i);
-//					// dataTypeKey = dataTypeKey.replaceAll("-", "_");
-//					// if raw type
-//					if (compDataTypes.get(dataTypeKey) != null) {
-//						String resRelationshipQuery = "MATCH (a:CompositeData), (b:PrimitiveData) WHERE  a.name = \""
-//								+ responseKeyOrig + "\" AND b.name=\"" + dataTypeKey + "\" "
-//								+ "CREATE (a) -[r:USES]-> (b)" + "RETURN a, b";
-//						relationshipList.add(resRelationshipQuery);
-//					} else if (rawDataTypes.get(dataTypeKey) != null) {
-//						String resRelationshipQuery = "MATCH (a:PrimitiveData), (b:PrimitiveData) WHERE  a.name = \""
-//								+ responseKeyOrig + "\" AND b.name=\"" + dataTypeKey + "\" "
-//								+ "CREATE (a) -[r:USES]-> (b)" + "RETURN a, b";
-//						relationshipList.add(resRelationshipQuery);
-//					}
-//				}
+
 				System.out.println("Relationships for " + endPoint);
 				for (int i = 0; i < relationshipList.size(); i++) {
 					System.out.println(
@@ -284,13 +304,18 @@ public class JsonParserApplication {
 				}
 			}
 
-			session.close();
+			//session.close();
 
-			driver.close();
+			//driver.close();
+			System.out.println(
+					"-----------------------------------------------------------------------------------------------------");
+			System.out.println("Successfully inserted into Neo4j for the file : " + fileLocation);
+			System.out.println(
+					"-----------------------------------------------------------------------------------------------------");
 
-			FileWriter writer = new FileWriter(new File("D://log.txt"));
-			writer.write(dataTypes.toString());
-			writer.close();
+			// FileWriter writer = new FileWriter(new File("D://log.txt"));
+//			writer.write(dataTypes.toString());
+//			writer.close();
 
 		} catch (JsonProcessingException e1) {
 			// TODO Auto-generated catch block
@@ -351,7 +376,7 @@ public class JsonParserApplication {
 				String dataTypeKey = (String) list.get(i);
 
 				String dataTypeKeyModified = dataTypeKey.replaceAll("-", "");
-				if (compDataTypes.get(key)!= null) {
+				if (compDataTypes.get(key) != null) {
 					if (compDataTypes.get(dataTypeKey) != null) {
 						String relationshipQuery = "MATCH (a:CompositeData), (b:CompositeData) WHERE  a.name = \"" + key
 								+ "\" AND b.name=\"" + dataTypeKey + "\" " + "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
@@ -360,9 +385,8 @@ public class JsonParserApplication {
 						String relationshipQuery = "MATCH (a:CompositeData), (b:PrimitiveData) WHERE  a.name = \"" + key
 								+ "\" AND b.name=\"" + dataTypeKey + "\" " + "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
 						relationshipList.add(relationshipQuery);
-					}	
-				}
-				else if(rawDataType.get(key) != null) {
+					}
+				} else if (rawDataType.get(key) != null) {
 					if (compDataTypes.get(dataTypeKey) != null) {
 						String relationshipQuery = "MATCH (a:PrimitiveData), (b:CompositeData) WHERE  a.name = \"" + key
 								+ "\" AND b.name=\"" + dataTypeKey + "\" " + "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
@@ -374,7 +398,7 @@ public class JsonParserApplication {
 					}
 				}
 				// if raw type
-				
+
 				queryPart = queryPart + ", " + dataTypeKeyModified + ":\"" + dataTypeKey + "\"";
 
 			}
@@ -392,43 +416,6 @@ public class JsonParserApplication {
 			graphDb.run(relationshipList.get(i).toString());
 		}
 	}
-
-//	public static void addServiceParametersToNeo4j(Session graphDb, HashMap<String, ArrayList> compDataTypes,
-//			HashMap rawDataType) {
-//
-//		Iterator iterator = compDataTypes.keySet().iterator();
-//		ArrayList relationshipList = new ArrayList();
-//
-//		while (iterator.hasNext()) {
-//
-//			String key = (String) iterator.next();
-//			ArrayList list = (ArrayList) compDataTypes.get(key);
-//			String queryPart = "";
-//			for (int i = 0; i < list.size(); i++) {
-//				String dataTypeKey = (String) list.get(i);
-//				dataTypeKey = dataTypeKey.replaceAll("-", "");
-//				// if raw type
-//				if (rawDataType.get(dataTypeKey) != null || compDataTypes.get(dataTypeKey) != null) {
-//					String relationshipQuery = "MATCH (a:CompositeData), (b:PrimitiveData) WHERE  a.name = \"" + key
-//							+ "\" AND b.name=\"" + dataTypeKey + "\" " + "CREATE (a)-[r:USES]->(b)" + "RETURN a, b";
-//					relationshipList.add(relationshipQuery);
-//				}
-//				queryPart = queryPart + ", " + dataTypeKey + ":\"" + dataTypeKey + "\"";
-//
-//			}
-//			key = key.replaceAll("-", "");
-//
-//			String query = "CREATE (" + key + ":CompositeData {name:\"" + key + "\"" + queryPart + "})\n" + "RETURN "
-//					+ key;
-//			System.out.println(query);
-//
-//			graphDb.run(query);
-//
-//		}
-//		for (int i = 0; i < relationshipList.size(); i++) {
-//			graphDb.run(relationshipList.get(i).toString());
-//		}
-//	}
 
 	public static void compositeDataToRawData(HashMap compDataTypes, HashMap dataTypes, HashMap rawDataTypes) {
 		Iterator iterator = compDataTypes.entrySet().iterator();
@@ -553,14 +540,13 @@ public class JsonParserApplication {
 			while (schemaNodes.hasNext()) {
 				Map.Entry<String, JsonNode> schemaEntry = (Map.Entry<String, JsonNode>) schemaNodes.next();
 
-				// System.out.println("\tRequest - key --> " + schemaEntry.getKey() + "
-				// value-->" + schemaEntry.getValue());
+				 System.out.println("\tRequest - key --> " + schemaEntry.getKey() + "value-->" + schemaEntry.getValue());
 
 				String reference = schemaEntry.getValue().toString().replaceAll("-", "");
 
 				String value = reference.substring(reference.lastIndexOf("/") + 1, reference.length() - 1)
 						.replaceAll("-", "");
-				//System.out.println("Request : " + value);
+				System.out.println("Request : " + value);
 				reqRespMap.put("request", value);
 				reqRespMapCopy.put("request", value);
 			}
@@ -571,12 +557,11 @@ public class JsonParserApplication {
 			while (schemaNodes.hasNext()) {
 				Map.Entry<String, JsonNode> schemaEntry = (Map.Entry<String, JsonNode>) schemaNodes.next();
 
-				// System.out.println("\tResponse - key --> " + schemaEntry.getKey() + "
-				// value-->" + schemaEntry.getValue());
+				System.out.println("\tResponse - key --> " + schemaEntry.getKey() + "value-->" + schemaEntry.getValue());
 				String reference = schemaEntry.getValue().toString().replaceAll("-", "");
 				String value = reference.substring(reference.lastIndexOf("/") + 1, reference.length() - 1)
 						.replaceAll("-", "");
-				//System.out.println("Response : " + value);
+				System.out.println("Response : " + value);
 				reqRespMap.put("response", value);
 				reqRespMapCopy.put("response", value);
 			}
@@ -697,6 +682,158 @@ public class JsonParserApplication {
 			refTraverser(entry.getValue(), list, listCopy, rawDataTypes);
 		}
 
+	}
+
+	public static File yamlToJsonConvertor(File yamlFile) {
+
+		File jsonFile = null;
+		try {
+			ObjectMapper ymlFile = new ObjectMapper(new YAMLFactory());
+			Object yml = ymlFile.readValue(yamlFile, Object.class);
+
+			ObjectMapper jsonMapper = new ObjectMapper();
+			String jsonFileString = jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsString(yml);
+
+			jsonFile = new File(
+					yamlFile.getPath().substring(0, yamlFile.getPath().length() - yamlFile.getName().length())
+							+ yamlFile.getName().substring(0, yamlFile.getName().indexOf('.')) + ".json");
+			FileWriter writer = new FileWriter(jsonFile);
+			writer.write(jsonFileString);
+			writer.close();
+			// this is for debugging and demo of the parsing process
+//			ObjectMapper yamlFileMapper = new ObjectMapper();
+//			JsonNode node = yamlFileMapper.readTree(jsonFile);
+//			nodeTraverser(node, false);
+			// return jsonFile;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return jsonFile;
+
+	}
+
+	public static void deleteJsonFiles(File file) {
+
+		if (file.isDirectory()) {
+			File[] files = file.listFiles();
+			for (int i = 0; i < files.length; i++) {
+				if (files[i].isDirectory()) {
+					deleteJsonFiles(files[i]);
+				} else if (files[i].getName().endsWith(".json")) {
+					System.out.println("Deleting file ... " + files[i].getPath());
+					files[i].delete();
+				}
+			}
+		} else {
+			if (file.getName().endsWith(".json")) {
+				System.out.println("Deleting file ... " + file.getPath());
+				file.delete();
+			}
+		}
+	}
+
+	public static void deleteYamlFiles(File file) {
+
+		if (file.isDirectory()) {
+			File[] files = file.listFiles();
+			for (int i = 0; i < files.length; i++) {
+				if (files[i].isDirectory()) {
+					deleteJsonFiles(files[i]);
+				} else if (files[i].getName().endsWith(".yaml")) {
+					System.out.println("Deleting file ... " + files[i].getPath());
+					files[i].delete();
+				}
+			}
+		} else {
+			if (file.getName().endsWith(".yaml")) {
+				System.out.println("Deleting file ... " + file.getPath());
+				file.delete();
+			}
+		}
+	}
+
+	public static void nodeTraverser(JsonNode node, boolean isSchemaFound) {
+
+		Iterator<Entry<String, JsonNode>> nodes = node.fields();
+
+		while (nodes.hasNext()) {
+
+			Map.Entry<String, JsonNode> entry = (Map.Entry<String, JsonNode>) nodes.next();
+			if (entry.getKey().equals("schemas")) {
+				isSchemaFound = true;
+				Iterator<Entry<String, JsonNode>> schemaNodes = entry.getValue().fields();
+				while (schemaNodes.hasNext()) {
+					Map.Entry<String, JsonNode> schemaEntry = (Map.Entry<String, JsonNode>) schemaNodes.next();
+
+					System.out.println("key --> " + schemaEntry.getKey() + " value-->" + schemaEntry.getValue());
+					// System.out.println("key --> " + schemaEntry.getKey() );
+
+					// traverse deeper
+					if (schemaEntry.getKey().indexOf("equest") != -1) {
+						// contains Request
+						System.out.println("Request " + schemaEntry.getKey());
+					} else if (schemaEntry.getKey().indexOf("Resp") != -1) {
+						// contains Response
+						System.out.println("Response " + schemaEntry.getKey());
+					} else {
+						// contains no Request and Response
+						System.out.println("Nothing " + schemaEntry.getKey());
+					}
+
+					nodeTraverser(schemaEntry.getValue(), "\t");
+				}
+			} else {
+				JsonNode nextNode = entry.getValue();
+
+				if (nextNode.size() != 0 && !isSchemaFound) {
+					nodeTraverser(nextNode, isSchemaFound);
+				}
+			}
+
+			// System.out.println("key --> " + entry.getKey() + " value-->" +
+			// entry.getValue());
+
+		}
+
+	}
+
+	public static void nodeTraverser(JsonNode node, String tab) {
+
+		if (node.isArray()) {
+			for (JsonNode arrayNode : node) {
+				Iterator<Entry<String, JsonNode>> nodes = arrayNode.fields();
+				while (nodes.hasNext()) {
+
+					Map.Entry<String, JsonNode> entry = (Map.Entry<String, JsonNode>) nodes.next();
+					Iterator<Entry<String, JsonNode>> schemaNodes = entry.getValue().fields();
+					while (schemaNodes.hasNext()) {
+						Map.Entry<String, JsonNode> schemaEntry = (Map.Entry<String, JsonNode>) schemaNodes.next();
+
+						System.out.println(
+								"\t(Array)key --> " + schemaEntry.getKey() + " value-->" + schemaEntry.getValue());
+						// System.out.println(tab+"key --> " + schemaEntry.getKey());
+						// traverse deeper
+						nodeTraverser(schemaEntry.getValue(), "\t");
+					}
+				}
+			}
+
+		} else {
+			Iterator<Entry<String, JsonNode>> nodes = node.fields();
+			while (nodes.hasNext()) {
+
+				Map.Entry<String, JsonNode> entry = (Map.Entry<String, JsonNode>) nodes.next();
+				Iterator<Entry<String, JsonNode>> schemaNodes = entry.getValue().fields();
+				while (schemaNodes.hasNext()) {
+					Map.Entry<String, JsonNode> schemaEntry = (Map.Entry<String, JsonNode>) schemaNodes.next();
+
+					System.out.println("\tkey --> " + schemaEntry.getKey() + " value-->" + schemaEntry.getValue());
+					// System.out.println(tab+"key --> " + schemaEntry.getKey());
+					// traverse deeper
+					nodeTraverser(schemaEntry.getValue(), "\t");
+				}
+			}
+		}
 	}
 
 }
